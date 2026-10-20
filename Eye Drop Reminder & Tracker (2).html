@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Drippy - Eye Drop Tracker & PWA Alarm</title>
+    
+    <!-- PWA Primary Color Meta -->
+    <meta name="theme-color" content="#1cb0f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Drippy">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Playful typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (v13.0.0) Initialization & Analytics -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC6hIQYKmiUTaDQnv2wmMF-YtvrIugFNMg",
+        authDomain: "drippyreminder.firebaseapp.com",
+        projectId: "drippyreminder",
+        storageBucket: "drippyreminder.firebasestorage.app",
+        messagingSenderId: "747290629057",
+        appId: "1:747290629057:web:cb3ca69697327fb82e5540",
+        measurementId: "G-V1TC5KV7RR"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      window.firebaseApp = app;
+      window.firebaseAnalytics = analytics;
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            green: '#58cc02',
+                            greenDark: '#46a302',
+                            blue: '#1cb0f6',
+                            blueDark: '#1899d6',
+                            yellow: '#ffc800',
+                            yellowDark: '#e5b200',
+                            red: '#ff4b4b',
+                            redDark: '#ea2b2b',
+                            purple: '#ce82ff',
+                            gray: '#e5e5e5',
+                            darkText: '#3c3c3c'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Fredoka', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f7f9fa;
+            color: #3c3c3c;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Duolingo 3D Tactile Buttons */
+        .btn-3d {
+            transition: all 0.1s ease;
+            position: relative;
+        }
+        .btn-3d:active {
+            transform: translateY(4px) !important;
+            box-shadow: none !important;
+        }
+        
+        .btn-green {
+            background-color: #58cc02;
+            box-shadow: 0 4px 0 #46a302;
+            color: white;
+        }
+        .btn-green:hover { background-color: #61e002; }
+
+        .btn-blue {
+            background-color: #1cb0f6;
+            box-shadow: 0 4px 0 #1899d6;
+            color: white;
+        }
+        .btn-blue:hover { background-color: #23c0ff; }
+
+        .btn-yellow {
+            background-color: #ffc800;
+            box-shadow: 0 4px 0 #e5b200;
+            color: #4b3c00;
+        }
+        .btn-yellow:hover { background-color: #ffd426; }
+
+        .btn-purple {
+            background-color: #ce82ff;
+            box-shadow: 0 4px 0 #b451fc;
+            color: white;
+        }
+
+        .btn-gray {
+            background-color: #ffffff;
+            box-shadow: 0 4px 0 #e5e5e5;
+            color: #afafaf;
+            border: 2px solid #e5e5e5;
+        }
+
+        .card-3d {
+            border: 2px solid #e5e5e5;
+            box-shadow: 0 6px 0 #e5e5e5;
+            border-radius: 1.25rem;
+        }
+
+        /* Mascot Eye Droplet Animation Keyframes */
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+
+        @keyframes happyBounce {
+            0%, 100% { transform: translateY(0) scale(1, 1); }
+            30% { transform: translateY(-20px) scale(0.9, 1.1); }
+            50% { transform: translateY(0) scale(1.15, 0.85); }
+            65% { transform: translateY(-8px) scale(0.95, 1.05); }
+            75% { transform: translateY(0) scale(1.05, 0.95); }
+        }
+
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .anim-float { animation: floatSlow 3s ease-in-out infinite; }
+        .anim-happy { animation: happyBounce 0.8s ease; }
+        .anim-ring { animation: pulseRing 1.5s infinite; }
+
+        /* Speech bubble arrow */
+        .bubble-arrow::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: #ffffff transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen pb-12 flex flex-col items-center">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full max-w-md bg-white border-b-2 border-gray-200 px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-brand-blue text-xl font-bold">
+                <i class="fa-solid fa-droplet"></i>
+            </div>
+            <span class="text-2xl font-bold tracking-wide text-brand-blue">Drippy</span>
+        </div>
+
+        <!-- Right Side: Install PWA Button & Stats -->
+        <div class="flex items-center gap-2">
+            <button id="installAppBtn" onclick="triggerPWAInstall()" class="hidden btn-3d btn-purple px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-download"></i> Install App
+            </button>
+            <div class="flex items-center gap-1 bg-amber-50 border-2 border-amber-200 rounded-full px-2.5 py-1 text-amber-600 font-bold text-xs md:text-sm">
+                <i class="fa-solid fa-fire text-amber-500 animate-bounce"></i>
+                <span id="streakCount">0</span>
+            </div>
+            <button onclick="openSettingsModal()" class="text-gray-400 hover:text-gray-600 p-1.5 text-xl">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-md px-4 pt-4 flex-1 flex flex-col gap-5">
+
+        <!-- Install Banner Prompt (If not in standalone mode) -->
+        <div id="installBanner" class="card-3d bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200 p-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-purple text-white flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-xs text-purple-900">Get Mobile App Mode</h4>
+                    <p class="text-[11px] text-purple-600 font-medium">Install to receive reliable drop alarms!</p>
+                </div>
+            </div>
+            <button onclick="showInstallGuide()" class="btn-3d btn-purple px-3 py-1.5 text-xs font-bold rounded-lg">
+                Setup
+            </button>
+        </div>
+
+        <!-- Mascot & Speech Section -->
+        <section class="card-3d bg-white p-5 flex flex-col items-center text-center relative overflow-hidden">
+            <!-- Speech Bubble -->
+            <div class="relative bg-white border-2 border-gray-200 rounded-2xl px-4 py-2 mb-3 shadow-sm max-w-xs bubble-arrow">
+                <p id="mascotSpeech" class="text-sm md:text-base font-semibold text-gray-700">
+                    "Hi there! Ready to keep your eyes hydrated today?"
+                </p>
+            </div>
+
+            <!-- SVG Animated Mascot "Drippy" -->
+            <div id="mascotContainer" class="w-32 h-32 my-1 anim-float cursor-pointer transition-transform duration-300" onclick="interactMascot()">
+                <svg id="drippySVG" viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">
+                    <path d="M100,20 C100,20 160,100 160,140 C160,173.1 133.1,200 100,200 C66.9,200 40,173.1 40,140 C40,100 100,20 100,20 Z" fill="#1cb0f6" />
+                    <path d="M70,80 C70,80 55,110 55,135 C55,145 60,155 65,155 C60,145 60,130 75,90 Z" fill="#ffffff" opacity="0.4" />
+                    <circle cx="70" cy="140" r="10" fill="#ff7676" opacity="0.4" />
+                    <circle cx="130" cy="140" r="10" fill="#ff7676" opacity="0.4" />
+
+                    <!-- Eyes -->
+                    <g id="mascotEyes">
+                        <circle cx="80" cy="125" r="8" fill="#1e293b" />
+                        <circle cx="120" cy="125" r="8" fill="#1e293b" />
+                        <circle cx="82" cy="122" r="3" fill="#ffffff" />
+                        <circle cx="122" cy="122" r="3" fill="#ffffff" />
+                    </g>
+
+                    <!-- Mouth -->
+                    <path id="mascotMouth" d="M85,145 Q100,160 115,145" stroke="#1e293b" stroke-width="5" stroke-linecap="round" fill="none" />
+                    
+                    <g id="sparkles" opacity="0">
+                        <path d="M40,50 L45,60 L55,65 L45,70 L40,80 L35,70 L25,65 L35,60 Z" fill="#ffc800"/>
+                        <path d="M160,60 L163,67 L170,70 L163,73 L160,80 L157,73 L150,70 L157,67 Z" fill="#ffc800"/>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Next Due Countdown Pill -->
+            <div class="mt-2 bg-blue-50 border border-blue-200 rounded-xl px-4 py-2 w-full flex items-center justify-between">
+                <span class="text-xs font-bold text-blue-500 uppercase tracking-wider">Next Dose In</span>
+                <span id="nextDropCountdown" class="text-sm font-bold text-brand-blue">--:--:--</span>
+            </div>
+        </section>
+
+        <!-- Notification & Test Controls -->
+        <section class="card-3d bg-white p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bell text-brand-blue text-lg"></i>
+                    <h2 class="font-bold text-gray-800">Alert Center</h2>
+                </div>
+                <span id="notifStatusBadge" class="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">
+                    Permission Needed
+                </span>
+            </div>
+            
+            <div class="flex flex-col gap-2.5">
+                <button onclick="requestNotificationPermission()" id="enableNotifBtn" class="btn-3d btn-blue w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-shield-halved"></i> Enable Mobile Notifications
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="testAlarmNotification()" class="btn-3d btn-yellow py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-vial"></i> Test Alert (5s)
+                    </button>
+                    <button onclick="showTroubleshootingModal()" class="btn-3d btn-gray py-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 text-gray-600">
+                        <i class="fa-solid fa-circle-question"></i> Not Working?
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Schedule Config Banner -->
+        <section class="card-3d bg-white p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-clock text-brand-blue text-lg"></i>
+                    <h2 class="font-bold text-gray-800">Start Time Routine</h2>
+                </div>
+                <span class="text-xs bg-gray-100 text-gray-500 font-bold px-2 py-1 rounded-md">8 hr Gap</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <input type="time" id="startTimeInput" class="bg-gray-100 border-2 border-gray-200 text-gray-800 text-lg font-bold rounded-xl px-3 py-2 outline-none focus:border-brand-blue flex-1">
+                <button onclick="updateScheduleFromInput()" class="btn-3d btn-blue font-bold px-4 py-2.5 rounded-xl text-sm">
+                    Save
+                </button>
+            </div>
+        </section>
+
+        <!-- Daily Drop Cards (3 Times a Day) -->
+        <section class="flex flex-col gap-3">
+            <h3 class="font-bold text-gray-500 text-sm tracking-wide uppercase px-1">Today's Dose Timeline</h3>
+            <div id="dropCardsContainer" class="flex flex-col gap-3">
+                <!-- Dynamic Drop Slots -->
+            </div>
+        </section>
+
+        <!-- Progress Overview & XP Stats -->
+        <section class="card-3d bg-white p-4 flex justify-around text-center">
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase">Today</p>
+                <p id="statToday" class="text-2xl font-bold text-brand-blue">0/3</p>
+            </div>
+            <div class="border-r border-gray-200"></div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase">Earned XP</p>
+                <p id="statXP" class="text-2xl font-bold text-brand-purple">0 XP</p>
+            </div>
+            <div class="border-r border-gray-200"></div>
+            <div>
+                <p class="text-xs font-bold text-gray-400 uppercase">Total Taken</p>
+                <p id="statTotal" class="text-2xl font-bold text-amber-500">0</p>
+            </div>
+        </section>
+
+        <!-- Log History -->
+        <section class="card-3d bg-white p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-brand-blue"></i> Activity History
+                </h3>
+                <button onclick="clearHistory()" class="text-xs text-red-400 hover:text-red-600 font-bold">Clear All</button>
+            </div>
+            <div id="historyList" class="max-h-40 overflow-y-auto flex flex-col gap-2 text-sm text-gray-600 pr-1">
+                <!-- History items -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FULLSCREEN ALARM MODAL -->
+    <div id="alarmModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="card-3d bg-white w-full max-w-sm p-6 flex flex-col items-center text-center relative animate-bounce-short">
+            <div class="absolute w-36 h-36 bg-blue-100 rounded-full -z-10 anim-ring"></div>
+
+            <div class="w-24 h-24 mb-3">
+                <svg viewBox="0 0 200 200" class="w-full h-full">
+                    <path d="M100,20 C100,20 160,100 160,140 C160,173.1 133.1,200 100,200 C66.9,200 40,173.1 40,140 C40,100 100,20 100,20 Z" fill="#1cb0f6"/>
+                    <circle cx="75" cy="120" r="10" fill="#fff"/>
+                    <circle cx="125" cy="120" r="10" fill="#fff"/>
+                    <circle cx="75" cy="120" r="5" fill="#000"/>
+                    <circle cx="125" cy="120" r="5" fill="#000"/>
+                    <path d="M85,150 Q100,165 115,150" stroke="#000" stroke-width="5" fill="none" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <h2 class="text-2xl font-extrabold text-gray-800 mb-1">Eye Drop Time!</h2>
+            <p id="alarmModalSubtext" class="text-gray-500 font-semibold mb-6">It's time for your scheduled eye droplets!</p>
+
+            <div class="w-full flex flex-col gap-3">
+                <button onclick="confirmTakeFromAlarm()" class="btn-3d btn-green w-full py-3.5 rounded-xl font-extrabold text-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-circle-check text-xl"></i> Take Drop Now
+                </button>
+                <button onclick="snoozeAlarm()" class="btn-3d btn-yellow w-full py-3 rounded-xl font-bold text-sm">
+                    <i class="fa-solid fa-clock"></i> Snooze 10 Minutes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA INSTALL GUIDE MODAL -->
+    <div id="installGuideModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="card-3d bg-white w-full max-w-sm p-5 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-download text-brand-purple"></i> Install App to Phone
+                </h3>
+                <button onclick="closeInstallGuide()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+            </div>
+
+            <!-- iOS Instructions -->
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <h4 class="font-bold text-sm text-gray-800 flex items-center gap-2 mb-2">
+                    <i class="fa-brands fa-apple text-base"></i> On iPhone / iPad (Safari)
+                </h4>
+                <ol class="text-xs text-gray-600 list-decimal list-inside space-y-1.5 font-medium">
+                    <li>Tap the <span class="font-bold text-blue-500">Share icon <i class="fa-solid fa-share-nodes"></i></span> at the bottom of Safari.</li>
+                    <li>Scroll down and tap <span class="font-bold text-gray-800">'Add to Home Screen' <i class="fa-regular fa-square-plus"></i></span>.</li>
+                    <li>Tap <span class="font-bold text-blue-500">'Add'</span> in the top right corner.</li>
+                </ol>
+            </div>
+
+            <!-- Android Instructions -->
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <h4 class="font-bold text-sm text-gray-800 flex items-center gap-2 mb-2">
+                    <i class="fa-brands fa-android text-base text-green-600"></i> On Android (Chrome)
+                </h4>
+                <ol class="text-xs text-gray-600 list-decimal list-inside space-y-1.5 font-medium">
+                    <li>Tap the <span class="font-bold text-gray-800">3 Dots menu <i class="fa-solid fa-ellipsis-vertical"></i></span> top right.</li>
+                    <li>Tap <span class="font-bold text-blue-500">'Install app'</span> or <span class="font-bold text-blue-500">'Add to Home screen'</span>.</li>
+                    <li>Follow screen prompts to confirm install.</li>
+                </ol>
+            </div>
+
+            <button onclick="closeInstallGuide()" class="btn-3d btn-purple w-full py-2.5 rounded-xl font-bold">
+                Got It!
+            </button>
+        </div>
+    </div>
+
+    <!-- TROUBLESHOOTING MODAL -->
+    <div id="troubleModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="card-3d bg-white w-full max-w-sm p-5 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Notification Guide
+                </h3>
+                <button onclick="closeTroubleshootingModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="space-y-3 text-xs text-gray-600">
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                    <h5 class="font-bold text-amber-800 mb-1">1. Disable 'Do Not Disturb'</h5>
+                    <p>DND or Focus Modes suppress lockscreen banners and sound alarms on iOS/Android.</p>
+                </div>
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <h5 class="font-bold text-blue-800 mb-1">2. Allow Browser Notifications</h5>
+                    <p>Go to Phone Settings -> Apps -> Chrome / Safari / Drippy -> Notifications -> Allow All.</p>
+                </div>
+                <div class="p-3 bg-green-50 border border-green-200 rounded-xl">
+                    <h5 class="font-bold text-green-800 mb-1">3. Keep Tab/App in Background</h5>
+                    <p>PWA background worker will keep tracking countdowns when installed to Home Screen.</p>
+                </div>
+            </div>
+
+            <button onclick="closeTroubleshootingModal()" class="btn-3d btn-blue w-full py-2.5 rounded-xl font-bold">
+                Close Check
+            </button>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 hidden">
+        <div class="card-3d bg-white w-full max-w-sm p-5 flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="text-lg font-bold text-gray-800">Preferences</h3>
+                <button onclick="closeSettingsModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="font-bold text-gray-700 text-sm">Audio Sound</p>
+                    <p class="text-xs text-gray-400">Play chime on alarm & clicks</p>
+                </div>
+                <input type="checkbox" id="soundToggle" class="w-6 h-6 accent-brand-green cursor-pointer" checked>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="font-bold text-gray-700 text-sm">Interval Gap</p>
+                    <p class="text-xs text-gray-400">Hours between drops</p>
+                </div>
+                <select id="intervalSelect" onchange="updateIntervalSetting(this.value)" class="bg-gray-100 border border-gray-300 font-bold text-sm rounded-lg p-1.5">
+                    <option value="4">4 Hours</option>
+                    <option value="6">6 Hours</option>
+                    <option value="8" selected>8 Hours</option>
+                    <option value="12">12 Hours</option>
+                </select>
+            </div>
+
+            <button onclick="closeSettingsModal()" class="btn-3d btn-blue w-full py-2.5 rounded-xl font-bold mt-2">
+                Done
+            </button>
+        </div>
+    </div>
+
+    <!-- DYNAMIC SERVICE WORKER & PWA MANIFEST CREATOR -->
+    <script>
+        // Inline Dynamic Manifest Registration
+        const manifestObj = {
+            name: "Drippy Eye Drop Reminder",
+            short_name: "Drippy",
+            start_url: "./",
+            display: "standalone",
+            background_color: "#ffffff",
+            theme_color: "#1cb0f6",
+            icons: [{
+                src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,10 C50,10 80,50 80,70 C80,86.5 66.5,100 50,100 C33.5,100 20,86.5 20,70 C20,50 50,10 50,10 Z' fill='%231cb0f6'/></svg>",
+                sizes: "192x192 512x512",
+                type: "image/svg+xml"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestURL;
+        document.head.appendChild(manifestLink);
+
+        // Dynamic Service Worker Blob for Push & Notifications
+        const swCode = `
+            self.addEventListener('install', (e) => self.skipWaiting());
+            self.addEventListener('activate', (e) => self.clients.claim());
+
+            self.addEventListener('notificationclick', (event) => {
+                event.notification.close();
+                event.waitUntil(
+                    clients.matchAll({ type: 'window' }).then((clientList) => {
+                        for (let client of clientList) {
+                            if (client.url && 'focus' in client) return client.focus();
+                        }
+                        if (clients.openWindow) return clients.openWindow('/');
+                    })
+                );
+            });
+        `;
+        const swBlob = new Blob([swCode], { type: 'application/javascript' });
+        const swURL = URL.createObjectURL(swBlob);
+
+        let swRegistration = null;
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(swURL).then(reg => {
+                swRegistration = reg;
+                console.log("PWA Service Worker Active");
+            }).catch(err => console.log("SW Reg failed:", err));
+        }
+
+        // Deferred PWA install prompt handler
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installAppBtn').classList.remove('hidden');
+        });
+
+        function triggerPWAInstall() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        document.getElementById('installAppBtn').classList.add('hidden');
+                        document.getElementById('installBanner').classList.add('hidden');
+                    }
+                    deferredPrompt = null;
+                });
+            } else {
+                showInstallGuide();
+            }
+        }
+    </script>
+
+    <!-- CORE LOGIC & STATE -->
+    <script>
+        const DEFAULT_START_TIME = "08:00";
+        let state = {
+            startTime: localStorage.getItem('drippy_start_time') || DEFAULT_START_TIME,
+            intervalHours: parseInt(localStorage.getItem('drippy_interval')) || 8,
+            soundEnabled: localStorage.getItem('drippy_sound') !== 'false',
+            streak: parseInt(localStorage.getItem('drippy_streak')) || 0,
+            xp: parseInt(localStorage.getItem('drippy_xp')) || 0,
+            lastCompletedDate: localStorage.getItem('drippy_last_date') || "",
+            history: JSON.parse(localStorage.getItem('drippy_history') || "[]"),
+            logs: JSON.parse(localStorage.getItem('drippy_logs') || "{}")
+        };
+
+        let activeAlarmIndex = null;
+        let alarmIntervalTimer = null;
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                if (type === 'click') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.05);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'complete') {
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.3);
+                    });
+                } else if (type === 'drop') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                }
+            } catch(e) {}
+        }
+
+        function startAlarmSound() {
+            if (!state.soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                alarmIntervalTimer = setInterval(() => {
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.setValueAtTime(1174.66, now + 0.1);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }, 800);
+            } catch(e) {}
+        }
+
+        function stopAlarmSound() {
+            if (alarmIntervalTimer) {
+                clearInterval(alarmIntervalTimer);
+                alarmIntervalTimer = null;
+            }
+        }
+
+        function getTodayKey() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function calculateDropTimes() {
+            const [startH, startM] = state.startTime.split(':').map(Number);
+            const times = [];
+            for (let i = 0; i < 3; i++) {
+                let hour = (startH + i * state.intervalHours) % 24;
+                times.push({
+                    index: i,
+                    timeStr: `${String(hour).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
+                    hour: hour,
+                    minute: startM
+                });
+            }
+            return times;
+        }
+
+        function initApp() {
+            document.getElementById('startTimeInput').value = state.startTime;
+            document.getElementById('streakCount').innerText = state.streak;
+            document.getElementById('statXP').innerText = `${state.xp} XP`;
+            document.getElementById('soundToggle').checked = state.soundEnabled;
+            document.getElementById('intervalSelect').value = state.intervalHours;
+
+            document.getElementById('soundToggle').addEventListener('change', (e) => {
+                state.soundEnabled = e.target.checked;
+                localStorage.setItem('drippy_sound', state.soundEnabled);
+            });
+
+            checkNotificationPermissionUI();
+            renderDropCards();
+            renderStatsAndHistory();
+            startLiveTimer();
+            updateMascotState();
+        }
+
+        function checkNotificationPermissionUI() {
+            const badge = document.getElementById('notifStatusBadge');
+            const btn = document.getElementById('enableNotifBtn');
+
+            if (!("Notification" in window)) {
+                badge.innerText = "Unsupported";
+                return;
+            }
+
+            if (Notification.permission === "granted") {
+                badge.innerText = "Active & Ready";
+                badge.className = "text-xs bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full";
+                btn.innerText = "Notifications Active";
+                btn.className = "btn-3d btn-green w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 pointer-events-none opacity-90";
+            } else if (Notification.permission === "denied") {
+                badge.innerText = "Blocked in Settings";
+                badge.className = "text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full";
+            }
+        }
+
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    checkNotificationPermissionUI();
+                    if (permission === 'granted') {
+                        playSound('complete');
+                        sendMobileNotification("Drippy Eye Reminder Active 💧", "You'll now receive timely notifications for your eye drop schedule!");
+                    }
+                });
+            }
+        }
+
+        function sendMobileNotification(title, body) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                if (swRegistration && swRegistration.showNotification) {
+                    swRegistration.showNotification(title, {
+                        body: body,
+                        icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50,10 C50,10 80,50 80,70 C80,86.5 66.5,100 50,100 C33.5,100 20,86.5 20,70 C20,50 50,10 50,10 Z' fill='%231cb0f6'/></svg>",
+                        vibrate: [200, 100, 200],
+                        requireInteraction: true
+                    });
+                } else {
+                    new Notification(title, { body: body });
+                }
+            }
+        }
+
+        function renderDropCards() {
+            const todayKey = getTodayKey();
+            if (!state.logs[todayKey]) {
+                state.logs[todayKey] = [false, false, false];
+            }
+
+            const dropTimes = calculateDropTimes();
+            const container = document.getElementById('dropCardsContainer');
+            container.innerHTML = '';
+
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            dropTimes.forEach((item, i) => {
+                const isTaken = state.logs[todayKey][i];
+                const itemMinutes = item.hour * 60 + item.minute;
+                const isPastDue = !isTaken && (currentMinutes > itemMinutes + 30);
+
+                let cardBorder = 'border-gray-200';
+                let statusBadge = '<span class="text-xs text-gray-400 font-bold">Scheduled</span>';
+
+                if (isTaken) {
+                    cardBorder = 'border-brand-green bg-green-50/40';
+                    statusBadge = '<span class="text-xs text-brand-green font-bold flex items-center gap-1"><i class="fa-solid fa-check"></i> Completed (+10 XP)</span>';
+                } else if (isPastDue) {
+                    cardBorder = 'border-red-300 bg-red-50/30';
+                    statusBadge = '<span class="text-xs text-brand-red font-bold flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Overdue</span>';
+                }
+
+                const cardHTML = `
+                    <div class="card-3d bg-white p-4 flex items-center justify-between border-2 ${cardBorder} transition-all">
+                        <div class="flex items-center gap-3">
+                            <button onclick="toggleDropState(${i})" class="w-12 h-12 rounded-2xl ${isTaken ? 'bg-brand-green text-white' : 'bg-blue-50 text-brand-blue border-2 border-blue-200'} flex items-center justify-center text-xl font-bold transition-transform active:scale-95">
+                                ${isTaken ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-droplet"></i>'}
+                            </button>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-extrabold text-lg ${isTaken ? 'line-through text-gray-400' : 'text-gray-800'}">Dose ${i + 1}</h4>
+                                    ${statusBadge}
+                                </div>
+                                <p class="text-xs font-semibold text-gray-500"><i class="fa-regular fa-clock"></i> ${formatTime12H(item.timeStr)}</p>
+                            </div>
+                        </div>
+
+                        <button onclick="toggleDropState(${i})" class="btn-3d ${isTaken ? 'btn-gray' : 'btn-green'} px-4 py-2.5 rounded-xl font-bold text-sm">
+                            ${isTaken ? 'Undo' : 'Mark Done'}
+                        </button>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function formatTime12H(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const displayH = h % 12 || 12;
+            return `${displayH}:${String(m).padStart(2, '0')} ${ampm}`;
+        }
+
+        function toggleDropState(index) {
+            playSound('click');
+            const todayKey = getTodayKey();
+            const currentState = state.logs[todayKey][index];
+            state.logs[todayKey][index] = !currentState;
+
+            const dropTimes = calculateDropTimes();
+            const timeLabel = dropTimes[index].timeStr;
+
+            if (!currentState) {
+                playSound('drop');
+                state.xp += 10;
+                addHistoryLog(`Dose ${index + 1} (${timeLabel}) completed! (+10 XP)`);
+            } else {
+                state.xp = Math.max(0, state.xp - 10);
+                addHistoryLog(`Dose ${index + 1} (${timeLabel}) unmarked.`);
+            }
+
+            saveState();
+            renderDropCards();
+            renderStatsAndHistory();
+            checkDayCompletion();
+            updateMascotState();
+        }
+
+        function checkDayCompletion() {
+            const todayKey = getTodayKey();
+            const todayLogs = state.logs[todayKey];
+            const allTaken = todayLogs.every(val => val === true);
+
+            if (allTaken && state.lastCompletedDate !== todayKey) {
+                state.lastCompletedDate = todayKey;
+                state.streak += 1;
+                state.xp += 30; // Bonus XP for full day
+                saveState();
+
+                playSound('complete');
+                triggerConfetti();
+                setMascotSpeech("Fantastic! All 3 doses complete! +30 Bonus XP!");
+                animateMascot('happy');
+            }
+        }
+
+        function updateMascotState() {
+            const todayKey = getTodayKey();
+            const todayLogs = state.logs[todayKey] || [false, false, false];
+            const completedCount = todayLogs.filter(Boolean).length;
+
+            const eyes = document.getElementById('mascotEyes');
+            const mouth = document.getElementById('mascotMouth');
+            const sparkles = document.getElementById('sparkles');
+
+            if (completedCount === 3) {
+                setMascotSpeech("All drops complete today! Your eyes are hydrated and happy! 🎉");
+                eyes.innerHTML = `
+                    <path d="M70,125 Q80,115 90,125" stroke="#1e293b" stroke-width="4" fill="none" stroke-linecap="round"/>
+                    <path d="M110,125 Q120,115 130,125" stroke="#1e293b" stroke-width="4" fill="none" stroke-linecap="round"/>
+                `;
+                mouth.setAttribute('d', 'M80,140 Q100,165 120,140 Z');
+                mouth.setAttribute('fill', '#1e293b');
+                sparkles.setAttribute('opacity', '1');
+            } else {
+                eyes.innerHTML = `
+                    <circle cx="80" cy="125" r="8" fill="#1e293b" />
+                    <circle cx="120" cy="125" r="8" fill="#1e293b" />
+                    <circle cx="82" cy="122" r="3" fill="#ffffff" />
+                    <circle cx="122" cy="122" r="3" fill="#ffffff" />
+                `;
+                mouth.setAttribute('d', 'M85,145 Q100,160 115,145');
+                mouth.setAttribute('fill', 'none');
+                sparkles.setAttribute('opacity', '0');
+            }
+        }
+
+        function setMascotSpeech(msg) {
+            document.getElementById('mascotSpeech').innerText = msg;
+        }
+
+        function interactMascot() {
+            playSound('drop');
+            animateMascot('happy');
+            const lines = [
+                "Blink blink! Stay hydrated!",
+                "Eye health is true wealth!",
+                "You're doing fantastic!",
+                "Tip: Don't let droplet tip touch your eye!"
+            ];
+            setMascotSpeech(lines[Math.floor(Math.random() * lines.length)]);
+        }
+
+        function animateMascot(type) {
+            const container = document.getElementById('mascotContainer');
+            container.classList.remove('anim-float', 'anim-happy');
+            void container.offsetWidth;
+            if (type === 'happy') {
+                container.classList.add('anim-happy');
+                setTimeout(() => container.classList.add('anim-float'), 800);
+            }
+        }
+
+        function startLiveTimer() {
+            setInterval(() => {
+                const now = new Date();
+                const dropTimes = calculateDropTimes();
+                const todayKey = getTodayKey();
+                const todayLogs = state.logs[todayKey] || [false, false, false];
+
+                let nextDropTime = null;
+                for (let i = 0; i < dropTimes.length; i++) {
+                    const dt = dropTimes[i];
+                    const target = new Date();
+                    target.setHours(dt.hour, dt.minute, 0, 0);
+
+                    // Check for exact minute alarm trigger
+                    if (now.getHours() === dt.hour && now.getMinutes() === dt.minute && now.getSeconds() === 0) {
+                        if (!todayLogs[i] && activeAlarmIndex !== i) {
+                            triggerAlarm(i);
+                        }
+                    }
+
+                    if (target > now && !nextDropTime) {
+                        nextDropTime = target;
+                    }
+                }
+
+                if (!nextDropTime) {
+                    const first = dropTimes[0];
+                    nextDropTime = new Date();
+                    nextDropTime.setDate(nextDropTime.getDate() + 1);
+                    nextDropTime.setHours(first.hour, first.minute, 0, 0);
+                }
+
+                const diffMs = nextDropTime - now;
+                if (diffMs > 0) {
+                    const hrs = Math.floor(diffMs / (1000 * 60 * 60));
+                    const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                    const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                    document.getElementById('nextDropCountdown').innerText = 
+                        `${String(hrs).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+                }
+
+            }, 1000);
+        }
+
+        function triggerAlarm(index) {
+            activeAlarmIndex = index;
+            startAlarmSound();
+
+            const dropTimes = calculateDropTimes();
+            const timeStr = formatTime12H(dropTimes[index].timeStr);
+
+            document.getElementById('alarmModalSubtext').innerText = `Time for Dose ${index + 1} (${timeStr})! Keeping your routine protects your vision.`;
+            document.getElementById('alarmModal').classList.remove('hidden');
+
+            sendMobileNotification("Eye Drop Reminder! 💧", `It's time for Dose ${index + 1} (${timeStr}). Tap to open and mark done!`);
+        }
+
+        function testAlarmNotification() {
+            playSound('click');
+            setMascotSpeech("Testing alert! Alarm will ring in 5 seconds...");
+            setTimeout(() => {
+                triggerAlarm(0);
+            }, 5000);
+        }
+
+        function confirmTakeFromAlarm() {
+            stopAlarmSound();
+            document.getElementById('alarmModal').classList.add('hidden');
+            if (activeAlarmIndex !== null) {
+                toggleDropState(activeAlarmIndex);
+                activeAlarmIndex = null;
+            }
+        }
+
+        function snoozeAlarm() {
+            stopAlarmSound();
+            document.getElementById('alarmModal').classList.add('hidden');
+            playSound('click');
+            
+            setTimeout(() => {
+                if (activeAlarmIndex !== null) {
+                    const todayKey = getTodayKey();
+                    if (!state.logs[todayKey][activeAlarmIndex]) {
+                        triggerAlarm(activeAlarmIndex);
+                    }
+                }
+            }, 10 * 60 * 1000);
+
+            setMascotSpeech("Snoozed for 10 minutes!");
+        }
+
+        function renderStatsAndHistory() {
+            const todayKey = getTodayKey();
+            const todayLogs = state.logs[todayKey] || [false, false, false];
+            const takenCount = todayLogs.filter(Boolean).length;
+
+            document.getElementById('statToday').innerText = `${takenCount}/3`;
+            document.getElementById('statXP').innerText = `${state.xp} XP`;
+            document.getElementById('streakCount').innerText = state.streak;
+
+            let totalTaken = 0;
+            Object.values(state.logs).forEach(arr => {
+                totalTaken += arr.filter(Boolean).length;
+            });
+            document.getElementById('statTotal').innerText = totalTaken;
+
+            const historyContainer = document.getElementById('historyList');
+            historyContainer.innerHTML = '';
+
+            if (state.history.length === 0) {
+                historyContainer.innerHTML = '<p class="text-xs text-gray-400 italic">No activity recorded yet.</p>';
+            } else {
+                state.history.slice(-10).reverse().forEach(item => {
+                    historyContainer.innerHTML += `
+                        <div class="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
+                            <span class="text-xs text-gray-600 font-medium">${item.text}</span>
+                            <span class="text-[10px] text-gray-400 font-bold">${item.time}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function addHistoryLog(text) {
+            const now = new Date();
+            const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            state.history.push({ text: text, time: timeStr });
+            if (state.history.length > 50) state.history.shift();
+            saveState();
+        }
+
+        function clearHistory() {
+            if (confirm("Clear all recorded history?")) {
+                state.history = [];
+                saveState();
+                renderStatsAndHistory();
+            }
+        }
+
+        function updateScheduleFromInput() {
+            const newTime = document.getElementById('startTimeInput').value;
+            if (newTime) {
+                playSound('click');
+                state.startTime = newTime;
+                saveState();
+                renderDropCards();
+                setMascotSpeech(`Schedule set! 3 daily doses starting at ${formatTime12H(newTime)}.`);
+            }
+        }
+
+        function updateIntervalSetting(val) {
+            state.intervalHours = parseInt(val);
+            saveState();
+            renderDropCards();
+        }
+
+        function showInstallGuide() {
+            document.getElementById('installGuideModal').classList.remove('hidden');
+        }
+        function closeInstallGuide() {
+            document.getElementById('installGuideModal').classList.add('hidden');
+        }
+
+        function showTroubleshootingModal() {
+            document.getElementById('troubleModal').classList.remove('hidden');
+        }
+        function closeTroubleshootingModal() {
+            document.getElementById('troubleModal').classList.add('hidden');
+        }
+
+        function openSettingsModal() {
+            playSound('click');
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            playSound('click');
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('drippy_start_time', state.startTime);
+            localStorage.setItem('drippy_interval', state.intervalHours);
+            localStorage.setItem('drippy_sound', state.soundEnabled);
+            localStorage.setItem('drippy_streak', state.streak);
+            localStorage.setItem('drippy_xp', state.xp);
+            localStorage.setItem('drippy_last_date', state.lastCompletedDate);
+            localStorage.setItem('drippy_logs', JSON.stringify(state.logs));
+            localStorage.setItem('drippy_history', JSON.stringify(state.history));
+        }
+
+        window.onload = function() {
+            initApp();
+        };
+    </script>
+</body>
+</html>
